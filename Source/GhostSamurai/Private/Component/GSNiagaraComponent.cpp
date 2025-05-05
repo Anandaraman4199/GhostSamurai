@@ -3,11 +3,20 @@
 
 #include "Component/GSNiagaraComponent.h"
 
+UGSNiagaraComponent::UGSNiagaraComponent(const FObjectInitializer& ObjectInitializer):Super(ObjectInitializer)
+{
+	
+}
+
 void UGSNiagaraComponent::DestroyInSometime(float SometimeInSeconds)
 {
 	FTimerDelegate TimerDelegate;
-	TimerDelegate.BindUFunction(this, FName("DestroyComponent"), true);
 	
 
-	GetWorld()->GetTimerManager().SetTimer(TimerHandleToDestroy, TimerDelegate, SometimeInSeconds, false);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandleToDestroy, this, &UGSNiagaraComponent::Destroy_Internal, SometimeInSeconds, false);
+}
+
+void UGSNiagaraComponent::Destroy_Internal()
+{
+	DestroyComponent(true);
 }

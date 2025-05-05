@@ -26,6 +26,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FName ComponentTag;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float SecondsToDestroy;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	class UNiagaraSystem* NiagaraSystem;
+
 private:
 
 	class UGSNiagaraComponent* SpawnedNiagara;
