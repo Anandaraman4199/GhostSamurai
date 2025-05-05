@@ -7,7 +7,11 @@
 
 void UANS_NiagaraAttached::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
-
+	/*
+	if(!GetWorld())
+	{
+		return;
+	}*/
 
 	AActor* OwnerActor = MeshComp->GetOwner();
 	if (!OwnerActor) 
