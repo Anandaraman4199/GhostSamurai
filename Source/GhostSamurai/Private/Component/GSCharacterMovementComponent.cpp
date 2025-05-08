@@ -3,7 +3,8 @@
 
 #include "Component/GSCharacterMovementComponent.h"
 #include "Actors/BaseWallRunObject.h"
-#include "GameFramework/Character.h"
+#include "Character/GSBaseCharacter.h"
+#include "Kismet/KismetMathLibrary.h"
 
 void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iterations)
 {
@@ -27,9 +28,7 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 	}
 
 	float remainingTime = deltaTime;
-
-	const EMovementMode StartingMovementMode = MovementMode;
-	const uint8 StartingCustomMovementMode = CustomMovementMode;
+	MaxCustomMovementSpeed = MaxWallRunSpeed;
 
 	// Perform the move
 	while ((remainingTime >= MIN_TICK_TIME) && (Iterations < MaxSimulationIterations) && CharacterOwner && (CharacterOwner->Controller || bRunPhysicsWithNoController || (CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)))
@@ -44,7 +43,7 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 
 		const FVector OldVelocity = Velocity;
 
-		CalcVelocity(timeTick, GroundFriction, false, BrakingDecelerationWalking);
+		CalcVelocity(timeTick, WallRunFriction, false, BrakingDecelerationWallRun);
 
 
 
@@ -55,6 +54,8 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 		FVector approxWallLeftVector = FVector::CrossProduct(WallBackwardVector, GetOwner()->GetActorUpVector());
 		FVector WallUpVector = FVector::CrossProduct(approxWallLeftVector, WallBackwardVector);
 		FVector WallLeftVector = FVector::CrossProduct(WallUpVector, WallBackwardVector);
+
+		TowardsWallRotation = UKismetMathLibrary::MakeRotationFromAxes(-WallBackwardVector, -WallLeftVector, WallUpVector);
 
 		float WallForwardMagnitude = Velocity.ProjectOnTo(-WallBackwardVector).Length();
 
@@ -73,12 +74,14 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 		else
 		{
 			FHitResult TraceResult;
-			FRotator DeltaRotator = RotationRate * deltaTime;
-		
-			DrawDebugSphere(GetWorld(), GetActorLocation() + MoveVelocity, 25, 12, FColor::Green);
 
-			SafeMoveUpdatedComponent(Delta, ComputeOrientToMovementRotation(GetActorTransform().Rotator(), deltaTime, DeltaRotator), false, TraceResult);
+			FVector DirectionalUnitVectorFromWallToActor = GetActorLocation() - WallRunTrace.Location;
+			DirectionalUnitVectorFromWallToActor.Normalize();
+			FVector DistanceMaintainedTargetLocation = ((DirectionalUnitVectorFromWallToActor * WallRunMaintainDistance) + WallRunTrace.Location);
+			
+			SafeMoveUpdatedComponent(DistanceMaintainedTargetLocation - GetActorLocation(), GetActorTransform().Rotator(), false, TraceResult);
 
+			SafeMoveUpdatedComponent(Delta, GetActorTransform().Rotator(), false, TraceResult);
 		}
 
 		// If we didn't move at all this iteration then abort (since future iterations will also be stuck).
@@ -95,7 +98,7 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 		float HorizontalComponent= FVector::DotProduct(MoveVelocityNoramlaized, WallLeftVector);
 		
 		
-			CharacterWallRunDirection = HorizontalComponent;
+		CharacterWallRunDirection = HorizontalComponent;
 		
 	}
 
@@ -123,6 +126,15 @@ void UGSCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations
 	}
 }
 
+float UGSCharacterMovementComponent::GetMaxAcceleration() const
+{
+	if (IsWallRunning())
+	{
+		return MaxWallRunAcceleration;
+	}
+	return MaxAcceleration;
+}
+
 void UGSCharacterMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -135,7 +147,7 @@ bool UGSCharacterMovementComponent::TryAndStartWallRun()
 
 	FVector StartLocation = GetActorLocation();
 
-	FVector EndLocation = GetActorLocation() + (GetCurrentAcceleration().GetClampedToMaxSize(1) * 500);
+	FVector EndLocation = GetActorLocation() + (GetCurrentAcceleration().GetClampedToMaxSize(1) * WallRunDetectionDistance);
 
 	FCollisionQueryParams CollisionQueryParams;
 
@@ -154,6 +166,8 @@ bool UGSCharacterMovementComponent::TryAndStartWallRun()
 			//UE_LOG(LogTemp, Warning, TEXT("Wall Run Activated"));
 
 			SetMovementMode(EMovementMode::MOVE_Custom, WALLRUN);
+
+			Cast<AGSBaseCharacter>(GetOwner())->OnWallRunStarted();
 		}
 
 	}
@@ -214,8 +228,9 @@ void UGSCharacterMovementComponent::StopWallRun()
 	if (bIsWallRunning)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("WallRun Deactivated"));
-
 		bIsWallRunning = false;
 		SetMovementMode(EMovementMode::MOVE_Walking);
+
+		Cast<AGSBaseCharacter>(GetOwner())->OnWallRunEnded();
 	}
 }
