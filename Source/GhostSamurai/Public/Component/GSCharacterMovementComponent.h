@@ -38,7 +38,7 @@ public:
 	bool TryAndStartWallRun();
 
 	UFUNCTION(BlueprintCallable)
-	void Sprint(bool CheckForWallRun);
+	void StartSprint(bool CheckForWallRun);
 
 	UFUNCTION(BlueprintCallable)
 	void StopSprint(bool CheckForWallRun);
@@ -51,6 +51,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void StopWallRun();
+
+	UFUNCTION(BlueprintPure)
+	float GetCharacterWallRunDirection() { return CharacterWallRunDirection; }
 
 public:
 
@@ -67,6 +70,10 @@ private:
 	bool bIsSprinting = false;
 
 	bool bIsWallRunning = false;
+
+	float CharacterWallRunDirection = 0.f;
+
+
 
 
 };

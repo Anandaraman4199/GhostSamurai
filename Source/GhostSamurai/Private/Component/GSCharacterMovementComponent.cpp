@@ -87,7 +87,18 @@ void UGSCharacterMovementComponent::PhysWallRun(float deltaTime, int32 Iteration
 			remainingTime = 0.f;
 			break;
 		}
+		//Test code to get character wallrunning direction
+
+		FVector MoveVelocityNoramlaized = MoveVelocity;
+		MoveVelocityNoramlaized.Normalize();
+		float verticalComponent = FVector::DotProduct(MoveVelocityNoramlaized, WallUpVector);
+		float HorizontalComponent= FVector::DotProduct(MoveVelocityNoramlaized, WallLeftVector);
+		
+		
+			CharacterWallRunDirection = HorizontalComponent;
+		
 	}
+
 
 }
 
@@ -155,7 +166,7 @@ bool UGSCharacterMovementComponent::TryAndStartWallRun()
 	return CanWallRun;
 }
 
-void UGSCharacterMovementComponent::Sprint(bool CheckForWallRun)
+void UGSCharacterMovementComponent::StartSprint(bool CheckForWallRun)
 {
 	if (CheckForWallRun && TryAndStartWallRun())
 	{
