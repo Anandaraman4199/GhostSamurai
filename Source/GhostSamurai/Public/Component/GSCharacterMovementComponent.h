@@ -89,6 +89,8 @@ public:
 
 private:
 
+	bool bPreventWallRun = false;
+
 	float MaxWalkSpeedAtStart = 0.f;
 
 	bool bIsSprinting = false;
@@ -97,7 +99,13 @@ private:
 
 	float CharacterWallRunDirection = 0.f;
 
+	void PerformWallRunEndJump();
 
+	void CantWallRunFor(float seconds);
 
+	UFUNCTION()
+	void StopPreventWallRun();
+
+	FTimerHandle PreventWallRunTimerHandle;
 
 };
